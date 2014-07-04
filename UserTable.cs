@@ -6,7 +6,7 @@ namespace AspNet.Identity.ServiceStack
     /// <summary>
     /// Class that represents the Users table in the MySQL Database
     /// </summary>
-    public class UserTable
+    public class UserTable<TUser> where TUser : IdentityUser, new()
     {
         private MsSQLDatabase _database;
 
@@ -28,7 +28,7 @@ namespace AspNet.Identity.ServiceStack
         {
             using (var db = _database.Open())
             {
-                return db.Scalar<string>(db.From<IdentityUser>().Select(x => x.UserName).Where(x => x.Id == userId));
+                return db.Scalar<string>(db.From<TUser>().Select(x => x.UserName).Where(x => x.Id == userId));
             }
         }
 
@@ -41,7 +41,7 @@ namespace AspNet.Identity.ServiceStack
         {
             using (var db = _database.Open())
             {
-                return db.Scalar<string>(db.From<IdentityUser>().Select(x => x.Id).Where(x => x.UserName == userName));
+                return db.Scalar<string>(db.From<TUser>().Select(x => x.Id).Where(x => x.UserName == userName));
             }
         }
 
@@ -50,11 +50,11 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="userId">The user's id</param>
         /// <returns></returns>
-        public IdentityUser GetUserById(string userId)
+        public TUser GetUserById(string userId)
         {
             using (var db = _database.Open())
             {
-                return db.SingleById<IdentityUser>(userId);
+                return db.SingleById<TUser>(userId);
             }
         }
 
@@ -63,11 +63,11 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="userName">User's name</param>
         /// <returns></returns>
-        public List<IdentityUser> GetUserByName(string userName)
+        public List<TUser> GetUserByName(string userName)
         {
             using (var db = _database.Open())
             {
-                return db.Select<IdentityUser>(x => x.UserName == userName);
+                return db.Select<TUser>(x => x.UserName == userName);
             }
         }
 
@@ -80,7 +80,7 @@ namespace AspNet.Identity.ServiceStack
         {
             using (var db = _database.Open())
             {
-                return db.Scalar<string>(db.From<IdentityUser>().Select(x => x.PasswordHash).Where(x => x.Id == userId));
+                return db.Scalar<string>(db.From<TUser>().Select(x => x.PasswordHash).Where(x => x.Id == userId));
             }
         }
 
@@ -94,7 +94,7 @@ namespace AspNet.Identity.ServiceStack
         {
             using (var db = _database.Open())
             {
-                return db.UpdateOnly<IdentityUser>(new IdentityUser() { PasswordHash = passwordHash },
+                return db.UpdateOnly<IdentityUser>(new TUser() { PasswordHash = passwordHash },
                     onlyFields: q => q.Update(p => p.PasswordHash).Where(p => p.Id == userId));
             }
         }
@@ -108,7 +108,7 @@ namespace AspNet.Identity.ServiceStack
         {
             using (var db = _database.Open())
             {
-                return db.Scalar<string>(db.From<IdentityUser>().Select(x => x.SecurityStamp).Where(x => x.Id == userId));
+                return db.Scalar<string>(db.From<TUser>().Select(x => x.SecurityStamp).Where(x => x.Id == userId));
             }
         }
 
@@ -117,11 +117,11 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public int Insert(IdentityUser user)
+        public int Insert(TUser user)
         {
             using (var db = _database.Open())
             {
-                return (int)db.Insert<IdentityUser>(user);
+                return (int)db.Insert<TUser>(user);
             }
         }
 
@@ -134,7 +134,7 @@ namespace AspNet.Identity.ServiceStack
         {
             using (var db = _database.Open())
             {
-                return db.Delete<IdentityUser>(x => x.Id == userId);
+                return db.Delete<TUser>(x => x.Id == userId);
             }
         }
 
@@ -143,7 +143,7 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public int Delete(IdentityUser user)
+        public int Delete(TUser user)
         {
             return Delete(user.Id);
         }
@@ -153,11 +153,11 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public int Update(IdentityUser user)
+        public int Update(TUser user)
         {
             using (var db = _database.Open())
             {
-                return db.Update<IdentityUser>(user);
+                return db.Update<TUser>(user);
             }
         }
     }

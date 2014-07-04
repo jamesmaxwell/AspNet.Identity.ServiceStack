@@ -8,7 +8,7 @@ namespace AspNet.Identity.ServiceStack
     /// Class that implements the ASP.NET Identity
     /// IUser interface 
     /// </summary>
-    [Alias("[AspNetUsers]")]
+    [Alias("AspNetUsers")]
     public class IdentityUser : IUser
     {
         /// <summary>

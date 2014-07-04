@@ -10,17 +10,19 @@ namespace AspNet.Identity.ServiceStack
     /// <summary>
     /// Class that implements the key ASP.NET Identity user store iterfaces
     /// </summary>
-    public class UserStore : IUserStore<IdentityUser>, 
-                             IUserClaimStore<IdentityUser>, 
-                             IUserLoginStore<IdentityUser>, 
-                             IUserRoleStore<IdentityUser>, 
-                             IUserPasswordStore<IdentityUser>
+    public class UserStore<TUser> :
+        IUserLoginStore<TUser>,
+        IUserClaimStore<TUser>,
+        IUserRoleStore<TUser>,
+        IUserPasswordStore<TUser>,
+        IUserStore<TUser>
+        where TUser : IdentityUser, new()
     {
-        private UserTable userTable;
+        private UserTable<TUser> userTable;
         private RoleTable roleTable;
         private UserRolesTable userRolesTable;
         private UserClaimsTable userClaimsTable;
-        private UserLoginsTable userLoginsTable; 
+        private UserLoginsTable userLoginsTable;
         public MsSQLDatabase Database { get; private set; }
 
         /// <summary>
@@ -28,8 +30,10 @@ namespace AspNet.Identity.ServiceStack
         /// instance using the Default Connection string
         /// </summary>
         public UserStore()
+            : this(new MsSQLDatabase())
         {
-            new UserStore(new MsSQLDatabase());
+            //new UserStore<TUser>(new MsSQLDatabase());
+
         }
 
         /// <summary>
@@ -37,9 +41,9 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="database"></param>
         public UserStore(MsSQLDatabase database)
-        { 
+        {
             Database = database;
-            userTable = new UserTable(database);
+            userTable = new UserTable<TUser>(database);
             roleTable = new RoleTable(database);
             userRolesTable = new UserRolesTable(database);
             userClaimsTable = new UserClaimsTable(database);
@@ -51,9 +55,10 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public Task CreateAsync(IdentityUser user)
+        public Task CreateAsync(TUser user)
         {
-            if (user == null) {
+            if (user == null)
+            {
                 throw new ArgumentNullException("user");
             }
 
@@ -67,20 +72,20 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="userId">The user's Id</param>
         /// <returns></returns>
-        public Task<IdentityUser> FindByIdAsync(string userId)
+        public Task<TUser> FindByIdAsync(string userId)
         {
             if (string.IsNullOrEmpty(userId))
             {
                 throw new ArgumentException("Null or empty argument: userId");
             }
 
-            IdentityUser result = userTable.GetUserById(userId);
-            if(result != null)
+            var result = userTable.GetUserById(userId);
+            if (result != null)
             {
-                return Task.FromResult<IdentityUser>(result);
+                return Task.FromResult<TUser>(result);
             }
 
-            return Task.FromResult<IdentityUser>(null);
+            return Task.FromResult<TUser>(null);
         }
 
         /// <summary>
@@ -88,22 +93,22 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="userName">The user's name</param>
         /// <returns></returns>
-        public Task<IdentityUser> FindByNameAsync(string userName)
+        public Task<TUser> FindByNameAsync(string userName)
         {
             if (string.IsNullOrEmpty(userName))
             {
                 throw new ArgumentException("Null or empty argument: userName");
             }
 
-            List<IdentityUser> result = userTable.GetUserByName(userName);
+            List<TUser> result = userTable.GetUserByName(userName);
 
             // Should I throw if > 1 user?
             if (result != null && result.Count == 1)
             {
-                return Task.FromResult<IdentityUser>(result[0]);
+                return Task.FromResult<TUser>(result[0]);
             }
 
-            return Task.FromResult<IdentityUser>(null);
+            return Task.FromResult<TUser>(null);
         }
 
         /// <summary>
@@ -111,7 +116,7 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="user">IdentityUser to be updated</param>
         /// <returns></returns>
-        public Task UpdateAsync(IdentityUser user)
+        public Task UpdateAsync(TUser user)
         {
             if (user == null)
             {
@@ -137,7 +142,7 @@ namespace AspNet.Identity.ServiceStack
         /// <param name="user">User to have claim added</param>
         /// <param name="claim">Claim to be added</param>
         /// <returns></returns>
-        public Task AddClaimAsync(IdentityUser user, Claim claim)
+        public Task AddClaimAsync(TUser user, Claim claim)
         {
             if (user == null)
             {
@@ -159,7 +164,7 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public Task<IList<Claim>> GetClaimsAsync(IdentityUser user)
+        public Task<IList<Claim>> GetClaimsAsync(TUser user)
         {
             ClaimsIdentity identity = userClaimsTable.FindByUserId(user.Id);
 
@@ -172,7 +177,7 @@ namespace AspNet.Identity.ServiceStack
         /// <param name="user">User to have claim removed</param>
         /// <param name="claim">Claim to be removed</param>
         /// <returns></returns>
-        public Task RemoveClaimAsync(IdentityUser user, Claim claim)
+        public Task RemoveClaimAsync(TUser user, Claim claim)
         {
             if (user == null)
             {
@@ -195,7 +200,7 @@ namespace AspNet.Identity.ServiceStack
         /// <param name="user">User to have login added</param>
         /// <param name="login">Login to be added</param>
         /// <returns></returns>
-        public Task AddLoginAsync(IdentityUser user, UserLoginInfo login)
+        public Task AddLoginAsync(TUser user, UserLoginInfo login)
         {
             if (user == null)
             {
@@ -217,7 +222,7 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="login"></param>
         /// <returns></returns>
-        public Task<IdentityUser> FindAsync(UserLoginInfo login)
+        public Task<TUser> FindAsync(UserLoginInfo login)
         {
             if (login == null)
             {
@@ -227,14 +232,14 @@ namespace AspNet.Identity.ServiceStack
             var userId = userLoginsTable.FindUserIdByLogin(login);
             if (userId != null)
             {
-                IdentityUser user = userTable.GetUserById(userId);
+                var user = userTable.GetUserById(userId);
                 if (user != null)
                 {
-                    return Task.FromResult<IdentityUser>(user);
+                    return Task.FromResult<TUser>(user);
                 }
             }
 
-            return Task.FromResult<IdentityUser>(null);
+            return Task.FromResult<TUser>(null);
         }
 
         /// <summary>
@@ -242,15 +247,15 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public Task<IList<UserLoginInfo>> GetLoginsAsync(IdentityUser user)
+        public Task<IList<UserLoginInfo>> GetLoginsAsync(TUser user)
         {
-            List<UserLoginInfo> userLogins = new List<UserLoginInfo>();
+            var userLogins = new List<UserLoginInfo>();
             if (user == null)
             {
                 throw new ArgumentNullException("user");
             }
 
-            List<UserLoginInfo> logins = userLoginsTable.FindByUserId(user.Id);
+            var logins = userLoginsTable.FindByUserId(user.Id);
             if (logins != null)
             {
                 return Task.FromResult<IList<UserLoginInfo>>(logins);
@@ -265,7 +270,7 @@ namespace AspNet.Identity.ServiceStack
         /// <param name="user">User to have login removed</param>
         /// <param name="login">Login to be removed</param>
         /// <returns></returns>
-        public Task RemoveLoginAsync(IdentityUser user, UserLoginInfo login)
+        public Task RemoveLoginAsync(TUser user, UserLoginInfo login)
         {
             if (user == null)
             {
@@ -288,7 +293,7 @@ namespace AspNet.Identity.ServiceStack
         /// <param name="user">User to have role added</param>
         /// <param name="roleName">Name of the role to be added to user</param>
         /// <returns></returns>
-        public Task AddToRoleAsync(IdentityUser user, string roleName)
+        public Task AddToRoleAsync(TUser user, string roleName)
         {
             if (user == null)
             {
@@ -301,7 +306,7 @@ namespace AspNet.Identity.ServiceStack
             }
 
             string roleId = roleTable.GetRoleId(roleName);
-            if(!string.IsNullOrEmpty(roleId))
+            if (!string.IsNullOrEmpty(roleId))
             {
                 userRolesTable.Insert(user, roleId);
             }
@@ -314,7 +319,7 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public Task<IList<string>> GetRolesAsync(IdentityUser user)
+        public Task<IList<string>> GetRolesAsync(TUser user)
         {
             if (user == null)
             {
@@ -338,7 +343,7 @@ namespace AspNet.Identity.ServiceStack
         /// <param name="user"></param>
         /// <param name="role"></param>
         /// <returns></returns>
-        public Task<bool> IsInRoleAsync(IdentityUser user, string role)
+        public Task<bool> IsInRoleAsync(TUser user, string role)
         {
             if (user == null)
             {
@@ -367,7 +372,7 @@ namespace AspNet.Identity.ServiceStack
         /// <param name="user"></param>
         /// <param name="role"></param>
         /// <returns></returns>
-        public Task RemoveFromRoleAsync(IdentityUser user, string role)
+        public Task RemoveFromRoleAsync(TUser user, string role)
         {
             throw new NotImplementedException();
         }
@@ -377,7 +382,7 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public Task DeleteAsync(IdentityUser user)
+        public Task DeleteAsync(TUser user)
         {
             if (user != null)
             {
@@ -392,7 +397,7 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public Task<string> GetPasswordHashAsync(IdentityUser user)
+        public Task<string> GetPasswordHashAsync(TUser user)
         {
             string passwordHash = userTable.GetPasswordHash(user.Id);
 
@@ -404,7 +409,7 @@ namespace AspNet.Identity.ServiceStack
         /// </summary>
         /// <param name="user"></param>
         /// <returns></returns>
-        public Task<bool> HasPasswordAsync(IdentityUser user)
+        public Task<bool> HasPasswordAsync(TUser user)
         {
             var hasPassword = !string.IsNullOrEmpty(userTable.GetPasswordHash(user.Id));
 
@@ -417,7 +422,7 @@ namespace AspNet.Identity.ServiceStack
         /// <param name="user"></param>
         /// <param name="passwordHash"></param>
         /// <returns></returns>
-        public Task SetPasswordHashAsync(IdentityUser user, string passwordHash)
+        public Task SetPasswordHashAsync(TUser user, string passwordHash)
         {
             user.PasswordHash = passwordHash;
 
