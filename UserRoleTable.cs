@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using ServiceStack.OrmLite;
 
 namespace AspNet.Identity.ServiceStack
 {
@@ -25,18 +26,13 @@ namespace AspNet.Identity.ServiceStack
         /// <returns></returns>
         public List<string> FindByUserId(string userId)
         {
-            List<string> roles = new List<string>();
-            string commandText = "Select Roles.Name from UserRoles, Roles where UserRoles.UserId = @userId and UserRoles.RoleId = Roles.Id";
-            Dictionary<string, object> parameters = new Dictionary<string, object>();
-            parameters.Add("@userId", userId);
-
-            var rows = _database.Query(commandText, parameters);
-            foreach(var row in rows)
+            string commandText = @"Select AspNetRoles.Name from AspNetUserRoles, AspNetRoles 
+                                  where AspNetUserRoles.UserId = @userId and
+                                        AspNetUserRoles.RoleId = AspNetRoles.Id";
+            using (var db = _database.Open())
             {
-                roles.Add(row["Name"]);
+                return db.Select<string>(commandText, new { userId = userId });
             }
-
-            return roles;
         }
 
         /// <summary>
@@ -46,11 +42,11 @@ namespace AspNet.Identity.ServiceStack
         /// <returns></returns>
         public int Delete(string userId)
         {
-            string commandText = "Delete from UserRoles where UserId = @userId";
-            Dictionary<string, object> parameters = new Dictionary<string, object>();
-            parameters.Add("UserId", userId);
-
-            return _database.Execute(commandText, parameters);
+            var commandText = "delete AspNetUserRoles where UserId = @userId";
+            using (var db = _database.Open())
+            {
+                return db.ExecuteNonQuery(commandText, new { userId = userId });
+            }
         }
 
         /// <summary>
@@ -61,12 +57,11 @@ namespace AspNet.Identity.ServiceStack
         /// <returns></returns>
         public int Insert(IdentityUser user, string roleId)
         {
-            string commandText = "Insert into UserRoles (UserId, RoleId) values (@userId, @roleId)";
-            Dictionary<string, object> parameters = new Dictionary<string, object>();
-            parameters.Add("userId", user.Id);
-            parameters.Add("roleId", roleId);
-
-            return _database.Execute(commandText, parameters);
+            string commandText = "Insert into AspNetUserRoles (UserId, RoleId) values (@userId, @roleId)";
+            using (var db = _database.Open())
+            {
+                return db.ExecuteNonQuery(commandText, new { userId = user.Id, roleId = roleId });
+            }
         }
     }
 }

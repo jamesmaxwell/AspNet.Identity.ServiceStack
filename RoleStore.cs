@@ -88,7 +88,6 @@ namespace AspNet.Identity.ServiceStack
         {
             if (Database != null)
             {
-                Database.Dispose();
                 Database = null;
             }
         }

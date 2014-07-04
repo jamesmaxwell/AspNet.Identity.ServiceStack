@@ -72,6 +72,7 @@
     <Compile Include="IdentityRole.cs" />
     <Compile Include="RoleStore.cs" />
     <Compile Include="IdentityUser.cs" />
+    <Compile Include="UserLoginInternal.cs" />
     <Compile Include="UserLoginsTable.cs" />
     <Compile Include="UserClaimsTable.cs" />
     <Compile Include="UserStore.cs" />

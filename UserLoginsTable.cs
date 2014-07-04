@@ -1,5 +1,7 @@
 ﻿using Microsoft.AspNet.Identity;
 using System.Collections.Generic;
+using ServiceStack.Logging;
+using ServiceStack.OrmLite;
 
 namespace AspNet.Identity.ServiceStack
 {
@@ -27,13 +29,10 @@ namespace AspNet.Identity.ServiceStack
         /// <returns></returns>
         public int Delete(IdentityUser user, UserLoginInfo login)
         {
-            string commandText = "Delete from UserLogins where UserId = @userId and LoginProvider = @loginProvider and ProviderKey = @providerKey";
-            Dictionary<string, object> parameters = new Dictionary<string, object>();
-            parameters.Add("UserId", user.Id);
-            parameters.Add("loginProvider", login.LoginProvider);
-            parameters.Add("providerKey", login.ProviderKey);
-
-            return _database.Execute(commandText, parameters);
+            using (var db = _database.Open())
+            {
+                return db.Delete<UserLoginInternal>(q => q.Where(x => x.UserId == user.Id && x.LoginProvider == login.LoginProvider && x.ProviderKey == login.ProviderKey));
+            }
         }
 
         /// <summary>
@@ -43,11 +42,10 @@ namespace AspNet.Identity.ServiceStack
         /// <returns></returns>
         public int Delete(string userId)
         {
-            string commandText = "Delete from UserLogins where UserId = @userId";
-            Dictionary<string, object> parameters = new Dictionary<string, object>();
-            parameters.Add("UserId", userId);
-
-            return _database.Execute(commandText, parameters);
+            using (var db = _database.Open())
+            {
+                return db.Delete<UserLoginInternal>(q => q.Where(x => x.UserId == userId));
+            }
         }
 
         /// <summary>
@@ -58,13 +56,10 @@ namespace AspNet.Identity.ServiceStack
         /// <returns></returns>
         public int Insert(IdentityUser user, UserLoginInfo login)
         {
-            string commandText = "Insert into UserLogins (LoginProvider, ProviderKey, UserId) values (@loginProvider, @providerKey, @userId)";
-            Dictionary<string, object> parameters = new Dictionary<string, object>();
-            parameters.Add("loginProvider", login.LoginProvider);
-            parameters.Add("providerKey", login.ProviderKey);
-            parameters.Add("userId", user.Id);
-
-            return _database.Execute(commandText, parameters);
+            using (var db = _database.Open())
+            {
+                return (int)db.Insert(new UserLoginInternal { UserId = user.Id, LoginProvider = login.LoginProvider, ProviderKey = login.ProviderKey });
+            }
         }
 
         /// <summary>
@@ -74,12 +69,10 @@ namespace AspNet.Identity.ServiceStack
         /// <returns></returns>
         public string FindUserIdByLogin(UserLoginInfo userLogin)
         {
-            string commandText = "Select UserId from UserLogins where LoginProvider = @loginProvider and ProviderKey = @providerKey";
-            Dictionary<string, object> parameters = new Dictionary<string, object>();
-            parameters.Add("loginProvider", userLogin.LoginProvider);
-            parameters.Add("providerKey", userLogin.ProviderKey);
-
-            return _database.GetStrValue(commandText, parameters);
+            using (var db = _database.Open())
+            {
+                return db.Scalar<string>(db.From<UserLoginInternal>().Select(x => x.UserId).Where(x => x.LoginProvider == userLogin.LoginProvider && x.ProviderKey == userLogin.ProviderKey));
+            }
         }
 
         /// <summary>
@@ -90,16 +83,14 @@ namespace AspNet.Identity.ServiceStack
         public List<UserLoginInfo> FindByUserId(string userId)
         {
             List<UserLoginInfo> logins = new List<UserLoginInfo>();
-            string commandText = "Select * from UserLogins where UserId = @userId";
-            Dictionary<string, object> parameters = new Dictionary<string, object>() { { "@userId", userId } };
-
-            var rows = _database.Query(commandText, parameters);
-            foreach (var row in rows)
+            using (var db = _database.Open())
             {
-                var login = new UserLoginInfo(row["LoginProvider"], row["ProviderKey"]);
-                logins.Add(login);
+                var loginInfos = db.Select<UserLoginInternal>(q => q.Where(x => x.UserId == userId));
+                foreach (var loginInfo in loginInfos)
+                {
+                    logins.Add(new UserLoginInfo(loginInfo.LoginProvider, loginInfo.ProviderKey));
+                }
             }
-
             return logins;
         }
     }
